@@ -4876,70 +4876,63 @@ function selecionarTipoOcorrencia(tipo) {
         // 🚀 CANAL SEGURO ANTI-CORS: Assinatura de Callback dinâmico JSONP
         const ID_CHAMADA = "cbDocaDet_" + new Date().getTime();
         
-window[ID_CHAMADA] = function(res) {
-    if (loading) loading.style.display = 'none';
-    console.log("📥 [DIAGNÓSTICO] Resposta bruta:", res);
-    
-    // Teste 1: Os elementos HTML realmente existem com esses IDs exatos?
-    console.log("🔍 [DIAGNÓSTICO] Elementos em tela:", {
-        modal: !!document.getElementById('modalDetalhesRomaneio'),
-        loading: !!document.getElementById('loadingDetalhes'),
-        wrapper: !!document.getElementById('wrapperTabelaMobile'),
-        tbody: !!document.getElementById('tbodyDetalhesCarga'),
-        containerErros: !!document.getElementById('corpoTabelaDetalhes')
-    });
-
-    // Teste 2: Forçar a exibição do wrapper da tabela no topo antes de qualquer lógica
-    if (wrapper) {
-        wrapper.style.setProperty('display', 'block', 'important');
-        console.log("🔓 [DIAGNÓSTICO] Forçado 'display: block' no wrapper da tabela.");
-    }
-
-    // Limpa a div de erros para garantir que ela não fique fixa na tela
-    const containerErros = document.getElementById('corpoTabelaDetalhes');
-    if (containerErros) containerErros.innerHTML = "";
-
-    // Teste 3: Validação manual dos dados passados pelo GAS
-    if (!res) return alert("❌ Diagnóstico: Objeto 'res' veio nulo ou indefinido.");
-    if (res.success !== true) return alert("❌ Diagnóstico: O backend retornou success = false. Erro: " + res.error);
-    if (!res.dados || res.dados.length === 0) return alert("❌ Diagnóstico: O array 'dados' veio vazio do servidor.");
-
-    // Se passou de todas as travas acima, os dados estão 100% prontos para renderizar
-    alert("🟩 Diagnóstico: " + res.dados.length + " itens validados! Renderizando agora...");
-
-    if (tbody) {
-        tbody.innerHTML = ""; 
-        res.dados.forEach((linha, index) => {
-            const tr = document.createElement('tr');
-            tr.style.borderBottom = "1px solid #f1f1f1";
+        window[ID_CHAMADA] = function(res) {
+            if (loading) loading.style.display = 'none';
+            console.log("📥 [DETALHES] Resposta da planilha regional recebida:", res);
             
-            let statusTratado = (linha.confirmado || "").toString().trim().toUpperCase();
-            let badgeStatus = (statusTratado === "SIM" || statusTratado === "OK") ? "SIM" : "NÃO";
+            if (res && res.success === true && res.dados && res.dados.length > 0) {
+                if (tbody) {
+                    tbody.innerHTML = ""; // Limpeza preventiva do laço
+                res.dados.forEach(linha => {
+                    
+                    // ============================================================================
+                    // 🩹 RETORNO AO PADRÃO DINÂMICO NATAL (LÊ DIRETO DO BANCO DE DADOS REGIONAL)
+                    // ============================================================================
+                    let dataFormatadaFinal = linha.data || '-';
+                    // ============================================================================
 
-            tr.innerHTML = `
-                <td style="padding: 10px; font-weight: bold;">${linha.romaneio || '-'}</td>
-                <td style="padding: 10px;">${linha.ov || '-'}</td>
-                <td style="padding: 10px;">${linha.fornec_cross || '-'}</td>
-                <td style="padding: 10px;">${linha.nf_cross || '-'}</td>
-                <td style="padding: 10px;">${linha.fornec_last || '-'}</td>
-                <td style="padding: 10px;">${linha.nf_last || '-'}</td>
-                <td style="padding: 10px; text-align:center;">${linha.volumes || '0'}</td>
-                <td style="padding: 10px; text-align:center;">${badgeStatus}</td>
-                <td style="padding: 10px;">${linha.conferente || '-'}</td>
-                <td style="padding: 10px;">${linha.data || '-'}</td>
-            `;
-            tbody.appendChild(tr);
-        });
-    }
+                    const tr = document.createElement('tr');
+                    tr.style.borderBottom = "1px solid #f1f1f1";
 
-    const txtResumo = document.getElementById('txtResumoItensModal');
-    if (txtResumo) txtResumo.innerText = `${res.dados.length} item(ns) localizados.`;
-
-    // Garbage Collector
-    delete window[ID_CHAMADA];
-    const scriptLixo = document.getElementById(ID_CHAMADA);
-    if (scriptLixo) scriptLixo.remove();
-};
+                        
+                        let badgeStatus = (linha.confirmado === "SIM" || linha.confirmado === "OK")
+                            ? "<span style='background:#e8f5e9; color:#2e7d32; padding:3px 8px; border-radius:4px; font-weight:bold;'>SIM</span>"
+                            : "<span style='background:#ffefee; color:#c9302c; padding:3px 8px; border-radius:4px;'>NÃO</span>";
+    
+                        tr.innerHTML = `
+                            <td style="padding: 10px; font-weight: bold;">${linha.romaneio}</td>
+                            <td style="padding: 10px;">${linha.ov || '-'}</td>
+                            <td style="padding: 10px;">${linha.fornec_cross || '-'}</td>
+                            <td style="padding: 10px;">${linha.nf_cross || '-'}</td>
+                            <td style="padding: 10px;">${linha.fornec_last || '-'}</td>
+                            <td style="padding: 10px;">${linha.nf_last || '-'}</td>
+                            <td style="padding: 10px; text-align:center; font-weight:bold;">${linha.volumes || '0'}</td>
+                            <td style="padding: 10px; text-align:center;">${badgeStatus}</td>
+                            <td style="padding: 10px;">${linha.conferente || '-'}</td>
+                            
+                      <!-- 🩹 Consome a data corrigida pelo front-end -->
+                            <td style="padding: 10px; font-size:0.75rem; color:#666;">${dataFormatadaFinal}</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
+    
+                const txtResumo = document.getElementById('txtResumoItensModal');
+                if (txtResumo) txtResumo.innerText = `${res.dados.length} item(ns) no Documento (REF.: Last Mile)`;
+                if (wrapper) wrapper.style.display = 'block';
+            } else {
+                var msgErro = (res && res.error) ? res.error : "Nenhum registro ativo encontrado para este romaneio.";
+                const containerErros = document.getElementById('corpoTabelaDetalhes');
+                if (containerErros) {
+                    containerErros.innerHTML = `<div style="text-align:center; padding:40px; color:#d9534f; font-size:13px; font-weight:bold;">⚠️ ${msgErro}</div>`;
+                }
+            }
+    
+            // Garbage Collector: Remove vestígios da chamada da memória RAM
+            delete window[ID_CHAMADA];
+            const scriptLixo = document.getElementById(ID_CHAMADA);
+            if (scriptLixo) scriptLixo.remove();
+        };
 
 
     
