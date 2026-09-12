@@ -604,7 +604,7 @@
           <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 11.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
         </svg>
       </div>
-      <h2 style="color: #8A05BE; margin: 0; font-size: 22px; font-weight: bold;">Conferência de Carga v202608_Perfil2.1</h2>
+      <h2 style="color: #8A05BE; margin: 0; font-size: 22px; font-weight: bold;">Conferência de Carga v202609_Perfil2.1</h2>
       <p style="color: #666; margin: 5px 0 0 0; font-size: 14px;">Selecione o estado de operação em doca</p>
     </div>
 
@@ -4876,63 +4876,65 @@ function selecionarTipoOcorrencia(tipo) {
         // 🚀 CANAL SEGURO ANTI-CORS: Assinatura de Callback dinâmico JSONP
         const ID_CHAMADA = "cbDocaDet_" + new Date().getTime();
         
-        window[ID_CHAMADA] = function(res) {
-            if (loading) loading.style.display = 'none';
-            console.log("📥 [DETALHES] Resposta da planilha regional recebida:", res);
+window[ID_CHAMADA] = function(res) {
+    if (loading) loading.style.display = 'none';
+    console.log("📥 [DETALHES] Resposta da planilha regional recebida:", res);
+    
+    // 🩹 CORREÇÃO: Limpa preventivamente qualquer mensagem de erro antiga da tela
+    const containerErros = document.getElementById('corpoTabelaDetalhes');
+    if (containerErros) containerErros.innerHTML = "";
+
+    if (res && res.success === true && res.dados && res.dados.length > 0) {
+        if (tbody) {
+            tbody.innerHTML = ""; 
             
-            if (res && res.success === true && res.dados && res.dados.length > 0) {
-                if (tbody) {
-                    tbody.innerHTML = ""; // Limpeza preventiva do laço
-                res.dados.forEach(linha => {
-                    
-                    // ============================================================================
-                    // 🩹 RETORNO AO PADRÃO DINÂMICO NATAL (LÊ DIRETO DO BANCO DE DADOS REGIONAL)
-                    // ============================================================================
-                    let dataFormatadaFinal = linha.data || '-';
-                    // ============================================================================
+            res.dados.forEach(linha => {
+                let dataFormatadaFinal = linha.data || '-';
 
-                    const tr = document.createElement('tr');
-                    tr.style.borderBottom = "1px solid #f1f1f1";
+                const tr = document.createElement('tr');
+                tr.style.borderBottom = "1px solid #f1f1f1";
 
-                        
-                        let badgeStatus = (linha.confirmado === "SIM" || linha.confirmado === "OK")
-                            ? "<span style='background:#e8f5e9; color:#2e7d32; padding:3px 8px; border-radius:4px; font-weight:bold;'>SIM</span>"
-                            : "<span style='background:#ffefee; color:#c9302c; padding:3px 8px; border-radius:4px;'>NÃO</span>";
-    
-                        tr.innerHTML = `
-                            <td style="padding: 10px; font-weight: bold;">${linha.romaneio}</td>
-                            <td style="padding: 10px;">${linha.ov || '-'}</td>
-                            <td style="padding: 10px;">${linha.fornec_cross || '-'}</td>
-                            <td style="padding: 10px;">${linha.nf_cross || '-'}</td>
-                            <td style="padding: 10px;">${linha.fornec_last || '-'}</td>
-                            <td style="padding: 10px;">${linha.nf_last || '-'}</td>
-                            <td style="padding: 10px; text-align:center; font-weight:bold;">${linha.volumes || '0'}</td>
-                            <td style="padding: 10px; text-align:center;">${badgeStatus}</td>
-                            <td style="padding: 10px;">${linha.conferente || '-'}</td>
-                            
-                      <!-- 🩹 Consome a data corrigida pelo front-end -->
-                            <td style="padding: 10px; font-size:0.75rem; color:#666;">${dataFormatadaFinal}</td>
-                        `;
-                        tbody.appendChild(tr);
-                    });
-                }
-    
-                const txtResumo = document.getElementById('txtResumoItensModal');
-                if (txtResumo) txtResumo.innerText = `${res.dados.length} item(ns) no Documento (REF.: Last Mile)`;
-                if (wrapper) wrapper.style.display = 'block';
-            } else {
-                var msgErro = (res && res.error) ? res.error : "Nenhum registro ativo encontrado para este romaneio.";
-                const containerErros = document.getElementById('corpoTabelaDetalhes');
-                if (containerErros) {
-                    containerErros.innerHTML = `<div style="text-align:center; padding:40px; color:#d9534f; font-size:13px; font-weight:bold;">⚠️ ${msgErro}</div>`;
-                }
-            }
-    
-            // Garbage Collector: Remove vestígios da chamada da memória RAM
-            delete window[ID_CHAMADA];
-            const scriptLixo = document.getElementById(ID_CHAMADA);
-            if (scriptLixo) scriptLixo.remove();
-        };
+                // 🩹 PROTEÇÃO ANTI-CRASH: Garante que 'confirmado' seja tratado como string mesmo se vier vazio
+                let statusTratado = (linha.confirmado || "").toString().trim().toUpperCase();
+                
+                let badgeStatus = (statusTratado === "SIM" || statusTratado === "OK")
+                    ? "<span style='background:#e8f5e9; color:#2e7d32; padding:3px 8px; border-radius:4px; font-weight:bold;'>SIM</span>"
+                    : "<span style='background:#ffefee; color:#c9302c; padding:3px 8px; border-radius:4px;'>NÃO</span>";
+
+                tr.innerHTML = `
+                    <td style="padding: 10px; font-weight: bold;">${linha.romaneio || '-'}</td>
+                    <td style="padding: 10px;">${linha.ov || '-'}</td>
+                    <td style="padding: 10px;">${linha.fornec_cross || '-'}</td>
+                    <td style="padding: 10px;">${linha.nf_cross || '-'}</td>
+                    <td style="padding: 10px;">${linha.fornec_last || '-'}</td>
+                    <td style="padding: 10px;">${linha.nf_last || '-'}</td>
+                    <td style="padding: 10px; text-align:center; font-weight:bold;">${linha.volumes || '0'}</td>
+                    <td style="padding: 10px; text-align:center;">${badgeStatus}</td>
+                    <td style="padding: 10px;">${linha.conferente || '-'}</td>
+                    <td style="padding: 10px; font-size:0.75rem; color:#666;">${dataFormatadaFinal}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        const txtResumo = document.getElementById('txtResumoItensModal');
+        if (txtResumo) txtResumo.innerText = `${res.dados.length} item(ns) no Documento (REF.: Last Mile)`;
+        if (wrapper) wrapper.style.display = 'block';
+        
+    } else {
+        var msgErro = (res && res.error) ? res.error : "Nenhum registro ativo encontrado para este romaneio.";
+        if (containerErros) {
+            containerErros.innerHTML = `<div style="text-align:center; padding:40px; color:#d9534f; font-size:13px; font-weight:bold;">⚠️ ${msgErro}</div>`;
+        }
+        if (wrapper) wrapper.style.display = 'none'; // Garante que a tabela vazia suma
+    }
+
+    // Garbage Collector
+    delete window[ID_CHAMADA];
+    const scriptLixo = document.getElementById(ID_CHAMADA);
+    if (scriptLixo) scriptLixo.remove();
+};
+
     
         // HERANÇA COMPATÍVEL: Consome suas variáveis nativas exatas descobertas pelo console
         let ufContexto = typeof UF_SELECIONADA_CONF !== "undefined" ? UF_SELECIONADA_CONF : "PR";
