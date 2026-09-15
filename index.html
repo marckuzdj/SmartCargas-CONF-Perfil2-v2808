@@ -1362,20 +1362,28 @@ function carregarDadosIniciais() {
 
 
 // Faz o carregamento automático quando a página abre
+// Faz o carregamento automático quando a página abre
 window.onload = carregarDadosIniciais;
 
-    // Carregar Transportadoras
-    fetch(urlSheets + "?action=getTransportadoras")
-        .then(res => res.json())
-        .then(lista => {
-            const ids = ['login-transp', 'reg-transp-list'];
-            const optionsHtml = '<option value="">Selecione a Transportadora</option>' + 
-                               lista.map(t => `<option value="${t}">${t}</option>`).join('');
-            ids.forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.innerHTML = optionsHtml;
-            });
+// 🚀 CORREÇÃO CIRÚRGICA: Carregar Transportadoras via motor fetchJSONP blindado contra CORS
+const urlTransportadoras = urlSheets + "?action=getTransportadoras";
+
+fetchJSONP(urlTransportadoras)
+    .then(lista => {
+        console.log("📡 [JSONP SUCESSO] Lista de transportadoras recebida:", lista);
+        
+        const ids = ['login-transp', 'reg-transp-list'];
+        const optionsHtml = '<option value="">Selecione a Transportadora</option>' + 
+                           lista.map(t => `<option value="${t}">${t}</option>`).join('');
+        ids.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.innerHTML = optionsHtml;
         });
+    })
+    .catch(errTransp => {
+        console.error("❌ Erro ao carregar lista de transportadoras via fetchJSONP:", errTransp);
+    });
+
 //};
 
 // --- 4. ROTINA DE LOGIN E CADASTRO ---
