@@ -1013,20 +1013,30 @@ function fetchJSONP(url) {
     return new Promise((resolve, reject) => {
         const callbackName = 'jsonp_cb_' + Math.round(100000 * Math.random());
         const script = document.createElement('script');
+        
         window[callbackName] = (data) => {
             resolve(data);
             document.body.removeChild(script);
             delete window[callbackName];
         };
+        
         script.onerror = () => {
+            // 🚨 ADICIONADO PARA DIAGNÓSTICO CIRÚRGICO:
+            console.error("❌ [FALHA DE REDE] O navegador rejeitou a URL física:", script.src);
+            
             reject(new Error("Erro de conexão"));
             document.body.removeChild(script);
             delete window[callbackName];
         };
-        script.src = `${url}${url.includes('?') ? '&' : '?'}callback=${callbackName}`;
+        
+        // Garante que a URL use obrigatoriamente HTTPS substituindo se vier errado
+        let urlSegura = url.replace("http://", "https://");
+        script.src = `${urlSegura}${urlSegura.includes('?') ? '&' : '?'}callback=${callbackName}`;
+        
         document.body.appendChild(script);
     });
 }
+
 
 
 // --- 2. NAVEGAÇÃO E INTERFACE ---
