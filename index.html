@@ -1297,32 +1297,36 @@ async function iniciarConferencia() {
 // --- 3. CARREGAMENTO INICIAL (EXTRAÍDO PARA FUNÇÃO NOMEADA) ---
 // --- 3. CARREGAMENTO INICIAL (EXTRAÍDO PARA FUNÇÃO NOMEADA) ---
 // --- 3. CARREGAMENTO INICIAL (PADRONIZADO PARA JSONP NO GITHUB PAGES) ---
+// --- 3. CARREGAMENTO INICIAL (ALINHADO 100% COM A SUA FUNÇÃO FETCHJSONP) ---
 function carregarDadosIniciais() {
-    try {
-        // 1. Tenta capturar a transportadora ativa do campo da tela principal
-        let valorTransp = document.getElementById('transp') ? document.getElementById('transp').value : "";
-        
-        // 2. BLINDAGEM MANUAL: Se estiver vazio, busca direto do campo usado no logon
-        if (!valorTransp || valorTransp.toString().trim() === "") {
-            valorTransp = document.getElementById('login-transp') ? document.getElementById('login-transp').value : "";
-        }
-        
-        // Força a formatação em MAIÚSCULO (UCASE) eliminando espaços extras
-        const transpAtiva = valorTransp.toString().toUpperCase().trim();
-        console.log("🔄 [SINC MANUAL] Transportadora recuperada e enviada:", `"${transpAtiva}"`);
-        dispararLogConf("SINC_MANUAL_TRANSP_DESPACHADA", `[SINC MANUAL] Transportadora recuperada e enviada: ["${transpAtiva}"]`);
-        
-        // 🚨 TRAVA DE SEGURANÇA: Aborta o disparo se a transportadora for vazia para evitar erro no servidor
-        if (transpAtiva === "") {
-            console.warn("⚠️ [SINC MANUAL] Abortado: Nenhuma transportadora selecionada para carregar romaneios.");
-            return;
-        }
+    // 1. Tenta capturar a transportadora ativa do campo da tela principal
+    let valorTransp = document.getElementById('transp') ? document.getElementById('transp').value : "";
+    
+    // 2. BLINDAGEM MANUAL: Se estiver vazio, busca direto do campo do logon
+    if (!valorTransp || valorTransp.toString().trim() === "") {
+        valorTransp = document.getElementById('login-transp') ? document.getElementById('login-transp').value : "";
+    }
+    
+    // Força a formatação em MAIÚSCULO (UCASE) eliminando espaços extras
+    const transpAtiva = valorTransp.toString().toUpperCase().trim();
+    console.log("🔄 [SINC MANUAL] Transportadora recuperada e enviada:", `"${transpAtiva}"`);
+    dispararLogConf("SINC_MANUAL_TRANSP_DESPACHADA", `[SINC MANUAL] Transportadora recuperada e enviada: ["${transpAtiva}"]`);
+    
+    // 🚨 TRAVA DE SEGURANÇA: Se estiver vazia, aborta para não gerar erro HTML no servidor do Google
+    if (transpAtiva === "") {
+        console.warn("⚠️ [SINC MANUAL] Abortado: Nenhuma transportadora selecionada para carregar romaneios.");
+        return;
+    }
 
-        // 🌟 CRIAMOS O CALLBACK GLOBAL QUE RECEBERÁ OS DADOS (Substitui o await res.json())
-        window.cbProcessarRomaneiosIniciais = function(data) {
+    // 3. MONTAGEM DA URL LIMPA (Sem injetar o callback manualmente, o fetchJSONP faz isso)
+    const urlLimpa = urlSheets + "?action=getRomaneios&transp=" + encodeURIComponent(transpAtiva);
+
+    // 4. CHAMADA DA REQUISIÇÃO USANDO A SUA PROMESSA NATIVA (Linhas 1011-1029)
+    fetchJSONP(urlLimpa)
+        .then(data => {
             console.log("📡 [JSONP SUCESSO] Romaneios brutos recebidos da API do Google:", data);
 
-            // Filtra os dados com base nas intercorrências que não contêm 'CONCLUÍDO'
+            // Filtra os dados com base no Critério 2: remove os romaneios concluídos
             dadosCompletos = data.filter(item => {
                 const textoIntercorrencia = (item.Intercorrencia || "").toUpperCase().trim();
                 return textoIntercorrencia === "" || !textoIntercorrencia.includes("CONCLUÍDO");
@@ -1333,7 +1337,7 @@ function carregarDadosIniciais() {
             if (select) {
                 select.innerHTML = '<option value="">Selecione o Romaneio</option>';
                 
-                // Usa o array já filtrado para popular o select
+                // Usa o array filtrado para popular o select
                 dadosCompletos.forEach(item => {
                     let opt = document.createElement("option");
                     opt.value = item.Romaneio;
@@ -1344,37 +1348,13 @@ function carregarDadosIniciais() {
             
             console.log("✅ Romaneios carregados e filtrados com sucesso!");
             dispararLogConf("ROMANEIOS_CARREGADOS", "Romaneios carregados e filtrados com sucesso!");
-
-            // Limpeza higiênica da tag injetada para manter o DOM limpo
-            const scriptAntigo = document.getElementById("script_jsonp_romaneios");
-            if (scriptAntigo) scriptAntigo.remove();
-        };
-
-        // 3. MONTAGEM DA URL DO SCRIPT COM O PARÂMETRO VINCULADO DE CALLBACK
-        const urlCompleta = urlSheets + "?action=getRomaneios&transp=" + encodeURIComponent(transpAtiva) + "&callback=cbProcessarRomaneiosIniciais";
-
-        // Remove script órfão anterior caso exista para evitar colisões
-        const scriptExistente = document.getElementById("script_jsonp_romaneios");
-        if (scriptExistente) scriptExistente.remove();
-
-        // Injeção dinâmica do elemento <script> (Bypassa o CORS no GitHub de forma nativa)
-        const script = document.createElement("script");
-        script.id = "script_jsonp_romaneios";
-        script.src = urlCompleta;
-        script.charset = "utf-8";
-        
-        script.onerror = function() {
-            console.error("❌ Erro de conexão de rede ou rejeição de CORS nos servidores do Google.");
-            dispararLogConf("ROMANEIOS_CARREGAR_ERRO", "Erro de conexão de rede ao tentar carregar romaneios.");
-        };
-
-        document.body.appendChild(script);
-
-    } catch (err) {
-        console.error("Erro estrutural ao preparar dados de inicialização:", err);
-        dispararLogConf("ROMANEIOS_CARREGAR_ERRO", `Erro estrutural: [${err.toString()}]`);
-    }
+        })
+        .catch(err => {
+            console.error("❌ Erro ao carregar romaneios pelo motor fetchJSONP:", err);
+            dispararLogConf("ROMANEIOS_CARREGAR_ERRO", `Erro ao carregar romaneios: [${err.toString()}]`);
+        });
 }
+
 
 
 
